@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cash Flow - Salary & Expense Tracker</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 </head>
 <body>
     <div class="container">
@@ -139,11 +141,11 @@
             <!-- Analytics Section -->
             <section class="analytics-section">
                 <div class="card">
-                    <h2 class="card-title">Expense Analytics</h2>
+                    <h2 class="card-title">📊 Expense Analytics</h2>
                     <div class="chart-container">
                         <canvas id="expenseChart" width="400" height="300"></canvas>
-                        <div class="chart-placeholder">
-                            <p class="chart-placeholder-text">Chart will appear here once expenses are added</p>
+                        <div class="chart-placeholder" id="chartPlaceholder">
+                            <p class="chart-placeholder-text">Add expenses to see the chart</p>
                         </div>
                     </div>
                 </div>
