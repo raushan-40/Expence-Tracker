@@ -1,6 +1,6 @@
 // ==========================================
 // Cash Flow - Salary & Expense Tracker
-// Salary, Expense, Balance & Validation Module
+// Salary, Expense, Balance, Validation & localStorage Module
 // ==========================================
 
 // ==========================================
@@ -12,6 +12,15 @@ let salaryData = {
 
 let expensesData = [];
 let expenseIdCounter = 1; // For generating unique IDs
+
+// ==========================================
+// localStorage Configuration
+// ==========================================
+const STORAGE_KEYS = {
+    SALARY: 'cashflow_salary',
+    EXPENSES: 'cashflow_expenses',
+    EXPENSE_ID_COUNTER: 'cashflow_expense_id_counter'
+};
 
 // ==========================================
 // DOM Elements
@@ -40,6 +49,69 @@ const expenseTableBody = document.getElementById('expenseTableBody');
 const expenseChart = document.getElementById('expenseChart');
 const currencySelector = document.getElementById('currencySelector');
 const downloadReportBtn = document.getElementById('downloadReportBtn');
+
+// ==========================================
+// localStorage Module - Helper Functions
+// ==========================================
+
+/**
+ * Saves data to localStorage with error handling
+ * @param {string} key - The localStorage key
+ * @param {*} data - The data to save (will be stringified)
+ * @returns {boolean} - True if successful, false if failed
+ */
+function saveToLocalStorage(key, data) {
+    try {
+        const jsonString = JSON.stringify(data);
+        localStorage.setItem(key, jsonString);
+        console.log(`✅ Saved to localStorage: ${key}`, data);
+        return true;
+    } catch (error) {
+        console.error(`❌ Failed to save to localStorage: ${key}`, error);
+        return false;
+    }
+}
+
+/**
+ * Loads data from localStorage with error handling
+ * @param {string} key - The localStorage key
+ * @param {*} defaultValue - Default value if key not found or data is corrupted
+ * @returns {*} - The parsed data or default value
+ */
+function loadFromLocalStorage(key, defaultValue = null) {
+    try {
+        const jsonString = localStorage.getItem(key);
+        
+        // If key doesn't exist, return default value
+        if (jsonString === null) {
+            console.log(`⚠️ localStorage key not found: ${key}, using default value`);
+            return defaultValue;
+        }
+
+        // Parse and return data
+        const data = JSON.parse(jsonString);
+        console.log(`✅ Loaded from localStorage: ${key}`, data);
+        return data;
+    } catch (error) {
+        console.error(`❌ Failed to load or parse from localStorage: ${key}`, error);
+        console.log(`⚠️ Using default value for: ${key}`);
+        return defaultValue;
+    }
+}
+
+/**
+ * Clears all Cash Flow data from localStorage
+ */
+function clearLocalStorage() {
+    try {
+        localStorage.removeItem(STORAGE_KEYS.SALARY);
+        localStorage.removeItem(STORAGE_KEYS.EXPENSES);
+        localStorage.removeItem(STORAGE_KEYS.EXPENSE_ID_COUNTER);
+        console.log('✅ localStorage cleared');
+    } catch (error) {
+        console.error('❌ Failed to clear localStorage:', error);
+    }
+}
 
 // ==========================================
 // Validation Module - Reusable Functions
@@ -303,6 +375,9 @@ function saveSalary() {
     // Save to state
     salaryData.totalSalary = parseFloat(salaryValue);
 
+    // Save to localStorage
+    saveToLocalStorage(STORAGE_KEYS.SALARY, salaryData.totalSalary);
+
     // Show success message
     showMessage('✅ Salary saved successfully!', false, 'salary');
 
@@ -468,6 +543,10 @@ function addExpense() {
     // Add to expenses array
     expensesData.push(newExpense);
 
+    // Save to localStorage
+    saveToLocalStorage(STORAGE_KEYS.EXPENSES, expensesData);
+    saveToLocalStorage(STORAGE_KEYS.EXPENSE_ID_COUNTER, expenseIdCounter);
+
     // Show success message
     showMessage('✅ Expense added successfully!', false, 'expense');
 
@@ -529,6 +608,10 @@ function deleteExpense(id) {
     if (index !== -1) {
         // Remove from array
         const deletedExpense = expensesData.splice(index, 1)[0];
+        
+        // Save to localStorage
+        saveToLocalStorage(STORAGE_KEYS.EXPENSES, expensesData);
+
         console.log('Expense deleted:', deletedExpense);
 
         // Re-render list
@@ -551,6 +634,40 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// ==========================================
+// Data Initialization Module
+// ==========================================
+
+/**
+ * Loads all data from localStorage on page load
+ */
+function initializeDataFromLocalStorage() {
+    console.log('📥 Initializing data from localStorage...');
+
+    // Load salary
+    const loadedSalary = loadFromLocalStorage(STORAGE_KEYS.SALARY, 0);
+    if (loadedSalary > 0) {
+        salaryData.totalSalary = loadedSalary;
+        console.log('✅ Salary loaded:', salaryData.totalSalary);
+    }
+
+    // Load expense ID counter
+    const loadedCounter = loadFromLocalStorage(STORAGE_KEYS.EXPENSE_ID_COUNTER, 1);
+    if (loadedCounter > 0) {
+        expenseIdCounter = loadedCounter;
+        console.log('✅ Expense ID counter loaded:', expenseIdCounter);
+    }
+
+    // Load expenses
+    const loadedExpenses = loadFromLocalStorage(STORAGE_KEYS.EXPENSES, []);
+    if (Array.isArray(loadedExpenses) && loadedExpenses.length > 0) {
+        expensesData = loadedExpenses;
+        console.log('✅ Expenses loaded:', expensesData);
+    }
+
+    console.log('📥 Initialization complete');
 }
 
 // ==========================================
@@ -579,14 +696,18 @@ expenseAmount.addEventListener('keypress', (e) => {
 });
 
 // ==========================================
-// Initialization
+// Page Load - Initialization
 // ==========================================
 
-console.log('✅ Salary, Expense, Balance & Validation Module Loaded');
-console.log('Reusable validation functions: validateTextField(), validateNumericField()');
-console.log('Ready with enhanced validation...');
+console.log('🚀 Cash Flow Tracker Starting...');
+
+// Load data from localStorage
+initializeDataFromLocalStorage();
 
 // Initialize display
 updateSalaryDisplay();
 renderExpenseList();
 updateBalance();
+
+console.log('✅ Salary, Expense, Balance, Validation & localStorage Module Loaded');
+console.log('Ready with persistent data storage...');
