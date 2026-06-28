@@ -1,6 +1,6 @@
 // ==========================================
 // Cash Flow - Salary & Expense Tracker
-// Salary, Expense, Balance, Validation, localStorage & Delete Module
+// Salary, Expense, Balance, Validation, localStorage, Delete & Chart.js Visualization Module
 // ==========================================
 
 // ==========================================
@@ -12,6 +12,9 @@ let salaryData = {
 
 let expensesData = [];
 let expenseIdCounter = 1; // For generating unique IDs
+
+// Chart.js instance
+let expenseChartInstance = null;
 
 // ==========================================
 // localStorage Configuration
@@ -47,6 +50,7 @@ const expenseTableBody = document.getElementById('expenseTableBody');
 
 // Analytics & Report
 const expenseChart = document.getElementById('expenseChart');
+const chartPlaceholder = document.getElementById('chartPlaceholder');
 const currencySelector = document.getElementById('currencySelector');
 const downloadReportBtn = document.getElementById('downloadReportBtn');
 
@@ -454,6 +458,9 @@ function updateBalance() {
     // Update balance card color based on value
     updateBalanceCardColor(remainingBalance);
 
+    // Update chart
+    updateChart();
+
     // Log for debugging
     console.log('Balance updated:', {
         totalSalary: salaryData.totalSalary,
@@ -476,6 +483,109 @@ function updateBalanceCardColor(balance) {
     } else {
         // Default - healthy balance
         remainingBalanceDisplay.style.color = '#1f2937';
+    }
+}
+
+// ==========================================
+// Chart.js Visualization Module
+// ==========================================
+
+/**
+ * Destroys the existing chart instance if it exists
+ */
+function destroyChart() {
+    if (expenseChartInstance) {
+        expenseChartInstance.destroy();
+        expenseChartInstance = null;
+        console.log('✅ Chart instance destroyed');
+    }
+}
+
+/**
+ * Creates or updates the expense visualization chart
+ */
+function updateChart() {
+    const totalExpenses = calculateTotalExpenses();
+    const remainingBalance = calculateRemainingBalance();
+
+    // If no data or salary not set, show placeholder
+    if (salaryData.totalSalary === 0 || (totalExpenses === 0 && remainingBalance === 0)) {
+        destroyChart();
+        expenseChart.style.display = 'none';
+        chartPlaceholder.style.display = 'flex';
+        console.log('⚠️ Insufficient data for chart');
+        return;
+    }
+
+    // Show chart, hide placeholder
+    expenseChart.style.display = 'block';
+    chartPlaceholder.style.display = 'none';
+
+    // Prepare chart data
+    const chartData = {
+        labels: [
+            `Total Expenses (${formatCurrency(totalExpenses)})`,
+            `Remaining Balance (${formatCurrency(remainingBalance)})`
+        ],
+        datasets: [{
+            data: [totalExpenses, remainingBalance],
+            backgroundColor: [
+                '#ef4444', // Red for expenses
+                '#10b981'  // Green for balance
+            ],
+            borderColor: [
+                '#dc2626',
+                '#059669'
+            ],
+            borderWidth: 2,
+            hoverOffset: 10
+        }]
+    };
+
+    // Chart configuration
+    const chartConfig = {
+        type: 'pie',
+        data: chartData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        padding: 15,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + formatCurrency(context.parsed);
+                        }
+                    },
+                    font: {
+                        size: 12
+                    },
+                    padding: 12,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)'
+                }
+            }
+        }
+    };
+
+    // Destroy previous chart instance before creating new one
+    destroyChart();
+
+    // Create new chart
+    try {
+        expenseChartInstance = new Chart(expenseChart, chartConfig);
+        console.log('✅ Chart created/updated successfully');
+    } catch (error) {
+        console.error('❌ Failed to create chart:', error);
     }
 }
 
@@ -553,7 +663,7 @@ function addExpense() {
     // Render expense list
     renderExpenseList();
 
-    // Update balance (this will update total expenses and remaining balance)
+    // Update balance (this will update total expenses, remaining balance, and chart)
     updateBalance();
 
     // Clear form
@@ -643,7 +753,7 @@ function deleteExpense(id) {
             renderExpenseList();
         }
 
-        // Update balance calculations
+        // Update balance calculations and chart
         updateBalance();
 
         // Show success message
@@ -728,14 +838,10 @@ expenseAmount.addEventListener('keypress', (e) => {
 });
 
 // Delete Expense Event - Using Event Delegation
-// This handler listens for clicks on delete buttons in the expense table
 expenseTableBody.addEventListener('click', (e) => {
-    // Check if the clicked element is a delete button
     if (e.target.classList.contains('delete-expense-btn')) {
-        // Get the expense ID from the data attribute
         const expenseId = parseInt(e.target.getAttribute('data-id'), 10);
         
-        // Call delete function
         if (!isNaN(expenseId)) {
             deleteExpense(expenseId);
         }
@@ -772,5 +878,6 @@ updateSalaryDisplay();
 renderExpenseList();
 updateBalance();
 
-console.log('✅ Salary, Expense, Balance, Validation, localStorage & Delete Module Loaded');
-console.log('Ready with delete functionality and persistent data storage...');
+console.log('✅ All Modules Loaded');
+console.log('✅ Salary, Expense, Balance, Validation, localStorage, Delete & Chart.js Visualization');
+console.log('Ready with full functionality...');
