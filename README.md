@@ -6,11 +6,7 @@ A modern and responsive **Salary & Expense Tracker** built using **HTML5, CSS3, 
 
 ## 🚀 Live Demo
 
-> Add your deployed Vercel/Netlify link here
-
-Example:
-
-https://your-project.vercel.app
+[https://your-project.vercel.app](https://bejewelled-selkie-86e39e.netlify.app/)
 
 ---
 
