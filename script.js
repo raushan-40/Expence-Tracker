@@ -1,6 +1,6 @@
 // ==========================================
 // Cash Flow - Salary & Expense Tracker
-// Salary Module Implementation
+// Salary & Expense Module Implementation
 // ==========================================
 
 // ==========================================
@@ -11,6 +11,7 @@ let salaryData = {
 };
 
 let expensesData = [];
+let expenseIdCounter = 1; // For generating unique IDs
 
 // ==========================================
 // DOM Elements
@@ -95,17 +96,28 @@ function validateSalary(value) {
  * Shows error/success message to user
  * @param {string} message - The message to display
  * @param {boolean} isError - Whether it's an error or success message
+ * @param {string} type - 'salary' or 'expense' to determine where to show message
  */
-function showMessage(message, isError = true) {
+function showMessage(message, isError = true, type = 'salary') {
+    let targetElement;
+
+    if (type === 'salary') {
+        targetElement = document.querySelector('.salary-form');
+    } else if (type === 'expense') {
+        targetElement = document.querySelector('.expense-form');
+    }
+
+    if (!targetElement) return;
+
     // Remove existing message if present
-    const existingMessage = document.querySelector('.salary-message');
+    const existingMessage = targetElement.querySelector('.message');
     if (existingMessage) {
         existingMessage.remove();
     }
 
     // Create message element
     const messageEl = document.createElement('div');
-    messageEl.className = `salary-message ${isError ? 'error' : 'success'}`;
+    messageEl.className = `message ${isError ? 'error' : 'success'}`;
     messageEl.textContent = message;
     messageEl.style.cssText = `
         margin-top: 1rem;
@@ -119,7 +131,7 @@ function showMessage(message, isError = true) {
             : 'background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0;'}
     `;
 
-    // Add animation
+    // Add animation if not exists
     const style = document.createElement('style');
     if (!document.querySelector('style[data-message-animation]')) {
         style.setAttribute('data-message-animation', 'true');
@@ -138,9 +150,8 @@ function showMessage(message, isError = true) {
         document.head.appendChild(style);
     }
 
-    // Insert message after salary form
-    const salaryForm = document.querySelector('.salary-form');
-    salaryForm.appendChild(messageEl);
+    // Insert message after form
+    targetElement.appendChild(messageEl);
 
     // Auto-remove success message after 3 seconds
     if (!isError) {
@@ -161,7 +172,7 @@ function saveSalary() {
     const validation = validateSalary(salaryValue);
 
     if (!validation.isValid) {
-        showMessage(validation.message, true);
+        showMessage(validation.message, true, 'salary');
         return;
     }
 
@@ -169,7 +180,7 @@ function saveSalary() {
     salaryData.totalSalary = parseFloat(salaryValue);
 
     // Show success message
-    showMessage(validation.message, false);
+    showMessage(validation.message, false, 'salary');
 
     // Update display
     updateSalaryDisplay();
@@ -223,20 +234,226 @@ function updateRemainingBalance() {
 }
 
 // ==========================================
-// Event Listeners
+// Expense Module
 // ==========================================
 
 /**
- * Save salary on button click
+ * Validates expense inputs
+ * @param {string} name - Expense name
+ * @param {string|number} amount - Expense amount
+ * @returns {object} - { isValid: boolean, message: string }
  */
-saveSalaryBtn.addEventListener('click', saveSalary);
+function validateExpense(name, amount) {
+    // Check if name is empty
+    if (name === '' || name === null || name === undefined) {
+        return {
+            isValid: false,
+            message: '❌ Expense name cannot be empty'
+        };
+    }
+
+    // Check name length
+    if (name.trim().length === 0) {
+        return {
+            isValid: false,
+            message: '❌ Expense name cannot be just spaces'
+        };
+    }
+
+    // Check if amount is empty
+    if (amount === '' || amount === null || amount === undefined) {
+        return {
+            isValid: false,
+            message: '❌ Expense amount cannot be empty'
+        };
+    }
+
+    // Convert to number
+    const amountNum = parseFloat(amount);
+
+    // Check if valid number
+    if (isNaN(amountNum)) {
+        return {
+            isValid: false,
+            message: '❌ Please enter a valid amount'
+        };
+    }
+
+    // Check if zero
+    if (amountNum === 0) {
+        return {
+            isValid: false,
+            message: '❌ Expense amount cannot be zero'
+        };
+    }
+
+    // Check if negative
+    if (amountNum < 0) {
+        return {
+            isValid: false,
+            message: '❌ Expense amount cannot be negative'
+        };
+    }
+
+    return {
+        isValid: true,
+        message: '✅ Expense added successfully!'
+    };
+}
 
 /**
- * Save salary on Enter key press
+ * Creates a new expense object
+ * @param {string} name - Expense name
+ * @param {number} amount - Expense amount
+ * @returns {object} - Expense object with id, name, amount
  */
+function createExpense(name, amount) {
+    return {
+        id: expenseIdCounter++,
+        name: name.trim(),
+        amount: parseFloat(amount)
+    };
+}
+
+/**
+ * Adds a new expense
+ */
+function addExpense() {
+    const name = expenseName.value.trim();
+    const amount = expenseAmount.value.trim();
+
+    // Validate inputs
+    const validation = validateExpense(name, amount);
+
+    if (!validation.isValid) {
+        showMessage(validation.message, true, 'expense');
+        return;
+    }
+
+    // Create expense object
+    const newExpense = createExpense(name, amount);
+
+    // Add to expenses array
+    expensesData.push(newExpense);
+
+    // Show success message
+    showMessage(validation.message, false, 'expense');
+
+    // Render expense list
+    renderExpenseList();
+
+    // Update summary cards
+    updateExpenseSummary();
+    updateRemainingBalance();
+
+    // Clear form
+    expenseForm.reset();
+    expenseName.focus();
+
+    // Log for debugging
+    console.log('Expense added:', newExpense);
+    console.log('All expenses:', expensesData);
+}
+
+/**
+ * Renders the expense list in the table
+ */
+function renderExpenseList() {
+    // Clear table body
+    expenseTableBody.innerHTML = '';
+
+    // If no expenses, show empty state
+    if (expensesData.length === 0) {
+        expenseListContainer.style.display = 'block';
+        expenseTableWrapper.style.display = 'none';
+        return;
+    }
+
+    // Show table and hide empty state
+    expenseListContainer.style.display = 'none';
+    expenseTableWrapper.style.display = 'block';
+
+    // Render each expense as a table row
+    expensesData.forEach((expense) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="expense-table-name">${escapeHtml(expense.name)}</td>
+            <td class="expense-table-amount">${formatCurrency(expense.amount)}</td>
+            <td>
+                <button class="btn btn-danger" onclick="deleteExpense(${expense.id})">Delete</button>
+            </td>
+        `;
+        expenseTableBody.appendChild(row);
+    });
+}
+
+/**
+ * Deletes an expense by id
+ * @param {number} id - The expense id to delete
+ */
+function deleteExpense(id) {
+    // Find index of expense
+    const index = expensesData.findIndex(expense => expense.id === id);
+
+    if (index !== -1) {
+        // Remove from array
+        const deletedExpense = expensesData.splice(index, 1)[0];
+        console.log('Expense deleted:', deletedExpense);
+
+        // Re-render list
+        renderExpenseList();
+
+        // Update summary cards
+        updateExpenseSummary();
+        updateRemainingBalance();
+
+        // Show message
+        showMessage('✅ Expense deleted successfully!', false, 'expense');
+    }
+}
+
+/**
+ * Updates the total expenses display in summary card
+ */
+function updateExpenseSummary() {
+    const totalExpenses = expensesData.reduce((sum, expense) => sum + expense.amount, 0);
+    const formattedExpenses = formatCurrency(totalExpenses);
+    totalExpensesDisplay.textContent = formattedExpenses;
+}
+
+/**
+ * Escapes HTML special characters to prevent XSS
+ * @param {string} text - Text to escape
+ * @returns {string} - Escaped text
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ==========================================
+// Event Listeners
+// ==========================================
+
+// Salary Events
+saveSalaryBtn.addEventListener('click', saveSalary);
+
 salaryInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         saveSalary();
+    }
+});
+
+// Expense Events
+expenseForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    addExpense();
+});
+
+expenseAmount.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        addExpense();
     }
 });
 
@@ -244,8 +461,9 @@ salaryInput.addEventListener('keypress', (e) => {
 // Initialization
 // ==========================================
 
-console.log('✅ Salary Module Loaded');
-console.log('Ready to save salary...');
+console.log('✅ Salary & Expense Module Loaded');
+console.log('Ready to save salary and add expenses...');
 
 // Initialize display
 updateSalaryDisplay();
+renderExpenseList();
